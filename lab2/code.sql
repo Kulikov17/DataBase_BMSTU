@@ -1,10 +1,12 @@
 -- 1.Получить список женщин отсортированных по имени
+-- 1.Предикат сравнения
 SELECT *
 FROM people
 WHERE sex = 'жен'
 ORDER BY person_name
 
 -- 2.Получить список дтп, произошедших между '2018-02-01' и '2018-02-28'
+-- 2. between 
 SELECT *
 FROM dtp
 WHERE date_dtp BETWEEN '2018-02-01' AND '2018-02-28'
@@ -14,6 +16,7 @@ SELECT *
 FROM dtp 
 WHERE region_dtp LIKE '%Республика%'
 
+--Инструкция SELECT, использующая предикат IN с вложенным подзапросом.
 -- 4.Получить список ТС являющиеся автомобилем АУДИ, владельцем который является мужчина
 SELECT id_ts, id_person, brand
 FROM ts
@@ -34,7 +37,7 @@ WHERE not EXISTS
  where  people.id_person = affecteddrivers.id_person
 )
 
-
+-- Инструкция SELECT, использующая предикат сравнения с квантором.
 -- 6. Получить список легковых машин, год выпуска которых новее любого года выпуска брэнда Audi
 SELECT id_ts, type_ts, brand, release_year
 FROM ts
@@ -45,7 +48,7 @@ WHERE release_year > ALL
   WHERE ts.brand = 'Audi'
 ) AND ts.type_ts = 'легковой автомобиль'
 
-
+-- Инструкция SELECT, использующая агрегатные функции в выражениях столбцов.
 -- 7. Получить средний год выпуска легковых машин
 SELECT SUM(year) / COUNT(*) AS avg_year
 FROM(

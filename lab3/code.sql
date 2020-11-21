@@ -1,4 +1,5 @@
 --1. Получить количество аварии с участием гужевого транспорта за определенный период
+--1. скалярная функции
 CREATE OR REPLACE FUNCTION countDtpСartage(from_date date, to_date date)
 RETURNS bigint AS $$
 begin
@@ -155,7 +156,52 @@ as $$
 select * from update_people_cursor(2280, 2282)
 
 
+SELECT datname FROM pg_database WHERE datistemplate = false and datname = 'medicine';
+SELECT * FROM pg_indexes WHERE tablename = 'ts';
 
+for SELECT * FROM pg_indexes WHERE tablename = $1;
+
+create or replace procedure index_info(tb_name varchar(64)) as
+$$
+declare
+	cur cursor
+	for SELECT * FROM pg_indexes WHERE tablename = $1;
+	row record;
+begin
+        open cur;
+        loop
+		    fetch cur into row;
+		    exit when not found;
+			raise notice '{func_name : %}', row.indexname;
+		end loop;
+        close cur;
+    end;
+    $$ language 'plpgsql';
+
+call index_info('dtp');
+
+for SELECT * FROM pg_indexes WHERE tablename = $1;
+
+create or replace procedure table_size() as
+$$
+declare
+	cur cursor
+	for 
+	SELECT table_name, pg_relation_size(cast(table_name as varchar)) as size FROM information_schema.tables
+	WHERE table_schema NOT IN ('information_schema','pg_catalog');
+	row record;
+begin
+        open cur;
+        loop
+		    fetch cur into row;
+		    exit when not found;
+			raise notice '{tab_name: %}{size: %}', row.table_name, row.size;
+		end loop;
+        close cur;
+    end;
+    $$ language 'plpgsql';
+
+call table_size();
 
 CREATE TRIGGER ChangeTypeDTP
 INSTEAD OF INSERT ON typedtp
