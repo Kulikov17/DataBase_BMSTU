@@ -234,10 +234,7 @@ begin
 
 call table_size();
 
-create table dbo.new_people(
-    id int not null,
-    name varchar(30) ,
-    surname varchar(40));
+
 
 --1) Триггер AFTER
 
