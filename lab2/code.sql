@@ -80,11 +80,24 @@ ELSE  'Меньше'
 END AS more18
 FROM people
 
--- 11. Создание локальный таблицы
+-- 11. 
 SELECT id_person, sex
 INTO temp 
 FROM people
 where passport = 'NULL'
+
+--11 Создание новой временной локальной таблицы из результирующего набора данных инструкции SELECT.
+-- новая таблица с людьми, которые владеют тс
+select people.id_person, people.person_name, ts.id_ts
+into something
+from people join ts on people.id_person = ts.id_person
+
+select * from something;
+drop table something;
+
+--локальные временные таблицы видны только их создателям при том же подключении к экземпляру SQL Server,
+--что и при первом создании или ссылке на таблицы. 
+--Локальные временные таблицы удаляются после отключения пользователя от экземпляра SQL Server. 
 
 -- 12. Полуть список имен водителей попавших в ДТП в Республике Мордовия 
 select people.id_person, people.person_name, dtp_drivers.region_dtp, dtp_drivers.city_dtp

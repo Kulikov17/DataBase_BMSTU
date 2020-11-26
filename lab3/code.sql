@@ -58,23 +58,53 @@ language 'plpgsql';
 
 select * from getTableDtpByRegion('Республика Мордовия');
 
--- 3.создание многооператорной функции получения поездов
-CREATE OR REPLACE function getTrains()
+--еще один вариант
+CREATE type tmp_dtp as
+(
+    id_dtp INT,
+	date_dtp DATE,
+	time_dtp TIME,
+    region_dtp CHARACTER VARYING(64),
+	city_dtp CHARACTER VARYING(64),
+    type_dtp INT[]
+);
+
+CREATE OR REPLACE function getTableDtpByRegionWithType(CHARACTER VARYING(64))
+returns SETOF tmp_dtp
+    as $$
+    begin
+    	return query(
+   		SELECT * 
+		from dtp
+		WHERE dtp.region_dtp = $1
+	);
+    end;
+$$
+language 'plpgsql';
+
+select * from getTableDtpByRegionWithType('Республика Мордовия');
+
+-- 3.создание многооператорной функции получения моделей поездов 2013 года произведенные Рузхиммаш
+CREATE OR REPLACE function getModelsTrains2013byUralTransMach()
 returns setof ts
 as $$
     declare
         typeTS CHARACTER VARYING(64);
+		releaseYearTS CHARACTER VARYING(4);
+		brandTS CHARACTER VARYING(64);
     begin
      typeTS := 'поезд';
+	 releaseYearTS := '2013';
+	 brandTS := 'Уралтрансмаш';
     return query (
 		select *
             from ts
-            where type_ts = typeTS
+            where type_ts = typeTS and release_year = releaseYearTS and brand = brandTS
 	);
     end
     $$ language 'plpgsql';
 
-select * from getTrains();
+select * from getModelsTrains2013byUralTransMach();
 
 
 -- 4. Рекурсивный вывод людей
@@ -156,11 +186,12 @@ as $$
 select * from update_people_cursor(2280, 2282)
 
 
-SELECT datname FROM pg_database WHERE datistemplate = false and datname = 'medicine';
-SELECT * FROM pg_indexes WHERE tablename = 'ts';
+--SELECT datname FROM pg_database WHERE datistemplate = false and datname = 'medicine';
+--SELECT * FROM pg_indexes WHERE tablename = 'ts';
 
-for SELECT * FROM pg_indexes WHERE tablename = $1;
+--for SELECT * FROM pg_indexes WHERE tablename = $1;
 
+-- 8. работа с метаданными
 create or replace procedure index_info(tb_name varchar(64)) as
 $$
 declare
@@ -203,12 +234,71 @@ begin
 
 call table_size();
 
-CREATE TRIGGER ChangeTypeDTP
-INSTEAD OF INSERT ON typedtp
-as 
-begin
- raise notice 'Cant change';
-end
+create table dbo.new_people(
+    id int not null,
+    name varchar(30) ,
+    surname varchar(40));
 
-insert into type_dtp (id_typedtp, description)
-values(30, 'sasaas');
+--1) Триггер AFTER
+
+create table if not exists owner_ts_changes_audit
+(
+	change_id_ts int not null,
+	change_id_person_old int not null,
+	change_id_person_new int not null,
+	change_date text not null
+);
+
+create or replace function owner_ts_log_func()
+returns trigger as
+$$
+   begin
+      insert into owner_ts_changes_audit(change_id_ts, change_id_person_old, change_id_person_new, change_date) values (new.id_ts, old.id_person, new.id_person, current_timestamp);
+      return new;
+   end;
+$$ language plpgsql;
+
+create trigger changeOwner
+	after update of id_person on ts
+	for each row
+	--when (old.name is distinct from new.name)
+	execute procedure owner_ts_log_func();
+
+insert into ts values(5000, 1, 'гужевой транспорт', 'NULL', 'NULL', 'NULL', 'NULL');
+
+update ts
+set id_person = 3
+where id_ts = 5000;
+
+select *
+from owner_ts_changes_audit
+
+select *
+from ts
+where id_ts = 5000;
+
+--2) Триггер INSTEAD OF
+
+create view typedtp_view as
+select *
+from typedtp;
+
+drop view typedtp_view cascade;
+
+create or replace function funcDisableInsertToTypedtpView() returns trigger as
+    $$
+    begin
+        raise notice 'Cant insert';
+        return new;
+    end;
+    $$ language 'plpgsql' ;
+
+
+CREATE TRIGGER disableInsertToTypedtpView
+INSTEAD OF INSERT ON typedtp_view
+FOR EACH ROW
+EXECUTE PROCEDURE funcDisableInsertToTypedtpView();
+
+insert into typedtp_view (id_typedtp, description) values(10, 'sasaashfhfh');
+
+
